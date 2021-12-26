@@ -6,6 +6,7 @@
 !docker-compose.yml
 !.env.example
 !Caddyfile*
+!README.md
 
 # if the files to be tracked are in subdirectories
 #!*/a/b/file1.txt
