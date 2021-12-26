@@ -1,0 +1,392 @@
+version: "3.6"
+
+networks:
+  public:
+    driver: bridge
+
+services:
+  caddy-public:
+    image: caddy
+    container_name: caddy-public
+    environment:
+      - DOMAIN
+    ports:
+       - 80:80
+       - 443:443
+    volumes:
+      - ~/config-docker/caddy-public/Caddyfile:/etc/caddy/Caddyfile
+      - ~/config-docker/caddy-public/data:/data
+      - ~/config-docker/caddy-public/config:/config
+    networks:
+      - public
+    restart: unless-stopped
+
+  caddy:
+    image: caddy
+    container_name: caddy
+    volumes:
+      - ~/config-docker/caddy/Caddyfile:/etc/caddy/Caddyfile
+      - ~/config-docker/caddy/data:/data
+      - ~/config-docker/caddy/config:/config
+    networks:
+      default:
+      # define static IP address so host dnsmasq can redirect lan.domain to container
+      # no need for aliases after VPN connection is established and DNS server is set
+        ipv4_address: ${CADDY_IP:?err}
+    restart: unless-stopped
+
+  minecraft:
+    image: itzg/minecraft-server:java17
+    container_name: minecraft
+    environment:
+      - EULA=TRUE
+      - UID
+      - GID
+      - TZ
+      - ENABLE_AUTOPAUSE=TRUE
+      - MAX_TICK_TIME=-1
+      - MEMORY=2G
+    volumes:
+      - ~/config-docker/minecraft:/data
+    ports:
+      - 25565:25565
+    networks:
+      - public
+    restart: unless-stopped
+
+  # no need for it but here for reference
+  #infrared:
+  #  image: haveachin/infrared
+  #  container_name: infrared
+  #  environment:
+  #    - UID
+  #    - GID
+  #  volumes:
+  #    - ~/config-docker/infrared:/configs:ro
+  #  ports:
+  #    - 25565:25565
+  #  networks:
+  #    - public
+  #  restart: unless-stopped
+
+  homer:
+    image: b4bz/homer
+    container_name: homer
+    environment:
+      - UID
+      - GID
+      - TZ
+    volumes:
+      - ~/config-docker/homer:/www/assets
+    networks:
+      - public
+    restart: unless-stopped
+
+  hedgedoc:
+    depends_on:
+      - mariadb
+    image: ghcr.io/linuxserver/hedgedoc
+    container_name: hedgedoc
+    environment:
+      - PUID
+      - PGID
+      - TZ
+      - DB_HOST
+      - DB_USER
+      - DB_PASS
+      - DB_NAME
+      - DB_PORT
+        #- CMD_DOMAIN
+        #- CMD_PROTOCOL_USESSL=false
+      - CMD_EMAIL=true
+      - CMD_ALLOW_EMAIL_REGISTER=false
+      - CMD_ALLOW_FREEURL=true
+      - CMD_REQUIRE_FREEURL_AUTHENTICATION=true
+      - CMD_ALLOW_ANONYMOUS=false
+      - CMD_ALLOW_ANONYMOUS_EDITS=true
+    volumes:
+      - ~/config-docker/hedgedoc:/config
+    networks:
+      - public
+    restart: unless-stopped
+
+  ddclient:
+    image: ghcr.io/linuxserver/ddclient
+    container_name: ddclient
+    environment:
+      - PUID
+      - PGID
+      - TZ
+    volumes:
+      - ~/config-docker/ddclient:/config
+    restart: unless-stopped
+
+  mariadb:
+    image: ghcr.io/linuxserver/mariadb:version-110.4.15mariabionic
+    container_name: mariadb
+    environment:
+      - PUID
+      - PGID
+      - MYSQL_ROOT_PASSWORD
+      - TZ
+    volumes:
+      - /mnt/main/mariadb:/config
+    networks:
+      - public
+      - default
+    restart: unless-stopped
+
+  transmission:
+    image: ghcr.io/linuxserver/transmission
+    container_name: transmission
+    environment:
+      - PUID
+      - PGID
+      - TZ
+      - TRANSMISSION_WEB_HOME=/flood-for-transmission/ #optional
+        #- WHITELIST=iplist #optional
+        #- HOST_WHITELIST=dnsnane list #optional
+    volumes:
+      - ~/config-docker/transmission:/config
+      - /mnt/main/tmp/torrents/downloads:/downloads
+      - /mnt/main/tmp/torrents/watch:/watch
+    ports:
+      # Allows for seeding
+      - 51413:51413
+      - 51413:51413/udp
+    restart: unless-stopped
+
+  ngircd:
+    image: ghcr.io/linuxserver/ngircd
+    container_name: ngircd
+    environment:
+      - PUID
+      - PGID
+      - TZ
+    volumes:
+      - ~/config-docker/ngircd:/config
+    restart: unless-stopped
+
+  guacd:
+    image: guacamole/guacd
+    container_name: guacd
+    restart: unless-stopped
+
+  guacamole:
+    depends_on:
+      - mariadb
+      - guacd
+    image: guacamole/guacamole
+    container_name: guacamole
+    environment:
+      - GUACD_HOSTNAME
+      - MYSQL_HOSTNAME
+      - MYSQL_DATABASE
+      - MYSQL_USER
+      - MYSQL_PASSWORD
+    restart: unless-stopped
+
+  wireguard:
+    image: ghcr.io/linuxserver/wireguard
+    container_name: wireguard
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    environment:
+      - PUID
+      - PGID
+      - TZ
+      - PEERS:?err
+    volumes:
+      - ~/config-docker/wireguard:/config
+      - /lib/modules:/lib/modules
+    ports:
+      - ${WG_PORT:?err}
+    sysctls:
+      - net.ipv4.conf.all.src_valid_mark=1
+    restart: unless-stopped
+
+  codeserver:
+    image: ghcr.io/linuxserver/code-server
+    container_name: codeserver
+    environment:
+      - PUID
+      - PGID
+      - TZ
+      - SUDO_PASSWORD:?err
+    volumes:
+      - ~/config-docker/code-server:/config
+    restart: unless-stopped
+
+  portainer:
+    image: portainer/portainer-ce
+    container_name: portainer
+    volumes:
+      - ~/config-docker/portainer:/data
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  scrutiny:
+    image: ghcr.io/linuxserver/scrutiny
+    container_name: scrutiny
+    cap_add:
+      - SYS_RAWIO
+    environment:
+      - PUID
+      - PGID
+      - TZ
+      - SCRUTINY_WEB=true
+      - SCRUTINY_COLLECTOR=true
+    volumes:
+      - ~/config-docker/scrutiny:/config
+      - /run/udev:/run/udev:ro
+    devices:
+      - ${DEVICE1:?err}
+      - ${DEVICE2:?err}
+    restart: unless-stopped
+
+  grocy:
+    image: ghcr.io/linuxserver/grocy
+    container_name: grocy
+    environment:
+      - PUID
+      - PGID
+      - TZ
+    volumes:
+      - ~/config-docker/grocy:/config
+    restart: unless-stopped
+
+  # may try to use later
+  #jellyfin:
+  #  image: ghcr.io/linuxserver/jellyfin
+  #  container_name: jellyfin
+  #  environment:
+  #    - PUID=1001
+  #    - PGID=1001
+  #    - TZ=America/New_York
+  #  group_add:
+  #    - 989
+  #  volumes:
+  #    - ~/config-docker/jellyfin/config:/config
+  #    - ~/config-docker/jellyfin/tvshows:/data/tvshows
+  #    - ~/config-docker/jellyfin/movies:/data/movies
+  #  devices:
+  #    - /dev/dri:/dev/dri
+  #  restart: unless-stopped
+  #  networks:
+  #    - public
+
+
+  # adapted from compose file provided by photoprism
+  photoprism:
+    depends_on:
+      - mariadb
+    image: photoprism/photoprism
+    container_name: photoprism
+    security_opt:
+      - seccomp:unconfined
+      - apparmor:unconfined
+    environment:
+      - PHOTOPRISM_ADMIN_PASSWORD          # PLEASE CHANGE: Your initial admin password (min 4 characters)
+      - PHOTOPRISM_ORIGINALS_LIMIT=1000               # File size limit for originals in MB (increase for high-res video)
+      - PHOTOPRISM_HTTP_COMPRESSION="gzip"            # Improves transfer speed and bandwidth utilization (none or gzip)
+      - PHOTOPRISM_DEBUG="false"                      # Run in debug mode (shows additional log messages)
+      - PHOTOPRISM_PUBLIC="false"                     # No authentication required (disables password protection)
+      - PHOTOPRISM_READONLY="false"                   # Don't modify originals directory (reduced functionality)
+      - PHOTOPRISM_EXPERIMENTAL="false"               # Enables experimental features
+      - PHOTOPRISM_DISABLE_WEBDAV="false"             # Disables built-in WebDAV server
+      - PHOTOPRISM_DISABLE_SETTINGS="false"           # Disables Settings in Web UI
+      - PHOTOPRISM_DISABLE_TENSORFLOW="false"         # Disables using TensorFlow for image classification
+      - PHOTOPRISM_DARKTABLE_PRESETS="false"          # Enables Darktable presets and disables concurrent RAW conversion
+      - PHOTOPRISM_DETECT_NSFW="false"                # Flag photos as private that MAY be offensive (requires TensorFlow)
+      - PHOTOPRISM_UPLOAD_NSFW="false"                 # Allow uploads that MAY be offensive
+      - PHOTOPRISM_DATABASE_DRIVER            # Use MariaDB (or MySQL) instead of SQLite for improved performance
+      - PHOTOPRISM_DATABASE_SERVER     # MariaDB database server (hostname:port)
+      - PHOTOPRISM_DATABASE_NAME         # MariaDB database schema name
+      - PHOTOPRISM_DATABASE_USER         # MariaDB database user name
+      - PHOTOPRISM_DATABASE_PASSWORD       # MariaDB database user password
+      - PHOTOPRISM_SITE_URL  # Public PhotoPrism URL
+      - PHOTOPRISM_SITE_TITLE="PhotoPrism"
+      - PHOTOPRISM_SITE_CAPTION="Browse Your Life"
+      - PHOTOPRISM_SITE_DESCRIPTION=""
+      - PHOTOPRISM_SITE_AUTHOR="Mehmet Hatip"
+      # You may optionally set a user / group id using environment variables if your Docker version or NAS does not
+      # support this natively (see next example):
+      - UID
+      - GID
+      # UMASK: 0000
+    # Uncomment and edit the following line to set a specific user / group id (native):
+    user: ${USER:?err}
+    volumes:
+      # Your photo and video files ([local path]:[container path]):
+      - "~/config-docker/photoprism/photos:/photoprism/originals"
+      # Multiple folders can be indexed by mounting them as sub-folders of /photoprism/originals:
+      # - "/mnt/Family:/photoprism/originals/Family"    # [folder_1]:/photoprism/originals/[folder_1]
+      # - "/mnt/Friends:/photoprism/originals/Friends"  # [folder_2]:/photoprism/originals/[folder_2]
+      # Mounting an import folder is optional (see docs):
+      - "~/config-docker/photoprism/import:/photoprism/import"
+      # Permanent storage for settings, index & sidecar files (DON'T REMOVE):
+      - "~/config-docker/photoprism/storage:/photoprism/storage"
+    restart: unless-stopped
+
+  librespeed:
+    image: ghcr.io/linuxserver/librespeed
+    container_name: librespeed
+    environment:
+      - PUID
+      - PGID
+      - TZ
+      - PASSWORD
+      - CUSTOM_RESULTS=false #optional
+      - DB_TYPE #optional
+      - DB_NAME=${DB_NAME_LIBRE} #optional
+      - DB_HOSTNAME #optional
+      - DB_USERNAME #optional
+      - DB_PASSWORD #optional
+      - DB_PORT #optional
+    volumes:
+      - ~/config-docker/librespeed:/config
+    networks:
+      - public
+    restart: unless-stopped
+
+  mumble:
+    image: phlak/mumble
+    container_name: mumble
+    environment:
+      - TZ
+    user: ${USER:?err}
+    volumes:
+      - ~/config-docker/mumble:/etc/mumble
+    ports:
+      - 64738:64738
+      - 64738:64738/udp
+    networks:
+      - public
+    restart: unless-stopped
+
+  terraria:
+    image: beardedio/terraria
+    container_name: terraria
+    volumes:
+      - ~/config-docker/terraria:/config
+    environment:
+      - world
+    ports:
+      - 7777:7777
+    tty: true
+    stdin_open: true
+    networks:
+      - public
+    restart: unless-stopped
+
+  # notes for future microservices
+  #emby embystat - media server
+  #grav - website
+  #ngircd - irc server, alternative to inspircd
+  #photoshow - web gallery
+  #lychee - photo management
+  #netbootxyz - pxe boot stuff
+  #nextcloud - online drive
+  #nzbget - usenet downloader
+  #plex ombi - media server
+

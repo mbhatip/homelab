@@ -1,0 +1,36 @@
+(privacy) {
+	# disable FLoC tracking
+	header ?Permissions-Policy interest-cohort=()
+
+	# enable HSTS
+	header ?Strict-Transport-Security max-age=31536000;
+
+	# disable clients from sniffing the media type
+	header ?X-Content-Type-Options nosniff
+
+	# clickjacking protection
+	header ?X-Frame-Options DENY
+
+	# keep referrer data off of HTTP connections
+	header ?Referrer-Policy no-referrer-when-downgrade
+
+	# something else
+	header ?X-XSS-Protection "1; mode=block"
+}
+
+{$DOMAIN:localhost} {
+	import privacy
+	header Content-Security-Policy "default-src 'none'"
+	reverse_proxy homer:8080
+}
+
+librespeed.{$DOMAIN:localhost} {
+	import privacy
+	header Content-Security-Policy "default-src 'none'; img-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'unsafe-inline'"
+	reverse_proxy librespeed:80
+}
+
+hedgedoc.{$DOMAIN:localhost} {
+	import privacy
+	reverse_proxy hedgedoc:3000
+}
