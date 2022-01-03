@@ -9,12 +9,12 @@ mount /mnt/disk4
 mount /mnt/pool
 echo 15 sec to get hard drives spinning
 sleep 15
-/home/memohat/go/bin/hsync -p /mnt/main /mnt/pool &&
+$HOME/go/bin/hsync -p /mnt/main /mnt/pool &&
 rsync -aivP --size-only --delete /mnt/main/ /mnt/pool
 
 mount /mnt/usb
 echo 15 sec to start copy to usb
 sleep 15
 
-/home/memohat/go/bin/hsync -p /mnt/main /mnt/usb
+$HOME/go/bin/hsync -p /mnt/main /mnt/usb
 rsync -aivP --size-only --delete /mnt/main/ /mnt/usb
