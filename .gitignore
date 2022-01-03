@@ -1,13 +1,10 @@
-# Ignore everything
-*
+Desktop/
+git/
+go/
+other/
+links/
+config-docker/
 
-# But not these files...
-!.gitignore
-!docker-compose.yml
+.*
+!.bashrc
 !.env.example
-!Caddyfile*
-!README.md
-
-# if the files to be tracked are in subdirectories
-#!*/a/b/file1.txt
-#!*/a/b/c/*

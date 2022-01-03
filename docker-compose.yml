@@ -1,15 +1,21 @@
 version: "3.6"
 
+# 1 network to host everything with specific subnet so caddy can have static IP
 networks:
-  public:
+  default:
     driver: bridge
+    ipam:
+      config:
+        - subnet: ${SUBNET:-172.20.0.0/16}
 
 services:
+  # public facing caddy that redirects requests to public domain properly
   caddy-public:
     image: caddy
     container_name: caddy-public
     environment:
       - DOMAIN
+      - FILES_PASSWORD
     ports:
        - 80:80
        - 443:443
@@ -17,13 +23,21 @@ services:
       - ~/config-docker/caddy-public/Caddyfile:/etc/caddy/Caddyfile
       - ~/config-docker/caddy-public/data:/data
       - ~/config-docker/caddy-public/config:/config
+      - ~/config-docker/caddy-public/srv:/srv
     networks:
-      - public
+      default:
+      # define static IP address so host dnsmasq can redirect domain to container
+      # no need for aliases after VPN connection is established and DNS server is set
+        ipv4_address: ${CADDY_PUBLIC_IP:-172.20.1.1}
     restart: unless-stopped
 
+  # private caddy that redirects from private domain through VPN
   caddy:
     image: caddy
     container_name: caddy
+    environment:
+      - PRIVATE_DOMAIN
+      - ROUTER_IP
     volumes:
       - ~/config-docker/caddy/Caddyfile:/etc/caddy/Caddyfile
       - ~/config-docker/caddy/data:/data
@@ -32,9 +46,10 @@ services:
       default:
       # define static IP address so host dnsmasq can redirect lan.domain to container
       # no need for aliases after VPN connection is established and DNS server is set
-        ipv4_address: ${CADDY_IP:?err}
+        ipv4_address: ${CADDY_IP:-172.20.2.1}
     restart: unless-stopped
 
+  # minecraft server, need to figure out how to change world through variable
   minecraft:
     image: itzg/minecraft-server:java17
     container_name: minecraft
@@ -50,8 +65,6 @@ services:
       - ~/config-docker/minecraft:/data
     ports:
       - 25565:25565
-    networks:
-      - public
     restart: unless-stopped
 
   # no need for it but here for reference
@@ -69,6 +82,7 @@ services:
   #    - public
   #  restart: unless-stopped
 
+  # simple homepage based on 1 yaml file to hold links to microservices
   homer:
     image: b4bz/homer
     container_name: homer
@@ -78,10 +92,9 @@ services:
       - TZ
     volumes:
       - ~/config-docker/homer:/www/assets
-    networks:
-      - public
     restart: unless-stopped
 
+  # cool google docs alternative
   hedgedoc:
     depends_on:
       - mariadb
@@ -106,10 +119,9 @@ services:
       - CMD_ALLOW_ANONYMOUS_EDITS=true
     volumes:
       - ~/config-docker/hedgedoc:/config
-    networks:
-      - public
     restart: unless-stopped
 
+  # update IP address in case AT&T decides to pull a fast one
   ddclient:
     image: ghcr.io/linuxserver/ddclient
     container_name: ddclient
@@ -121,6 +133,7 @@ services:
       - ~/config-docker/ddclient:/config
     restart: unless-stopped
 
+  # database
   mariadb:
     image: ghcr.io/linuxserver/mariadb:version-110.4.15mariabionic
     container_name: mariadb
@@ -130,12 +143,10 @@ services:
       - MYSQL_ROOT_PASSWORD
       - TZ
     volumes:
-      - /mnt/main/mariadb:/config
-    networks:
-      - public
-      - default
+      - ~/config-docker/mariadb:/config
     restart: unless-stopped
 
+  # torrent client
   transmission:
     image: ghcr.io/linuxserver/transmission
     container_name: transmission
@@ -156,6 +167,7 @@ services:
       - 51413:51413/udp
     restart: unless-stopped
 
+  # irc client, still not sure to have open to internet
   ngircd:
     image: ghcr.io/linuxserver/ngircd
     container_name: ngircd
@@ -167,11 +179,13 @@ services:
       - ~/config-docker/ngircd:/config
     restart: unless-stopped
 
+  # daemon for guacamole to work
   guacd:
     image: guacamole/guacd
     container_name: guacd
     restart: unless-stopped
 
+  # remote ssh, rdp, vnc over a browser
   guacamole:
     depends_on:
       - mariadb
@@ -186,6 +200,7 @@ services:
       - MYSQL_PASSWORD
     restart: unless-stopped
 
+  # VIC (Very Important Container) for VPN access to home network
   wireguard:
     image: ghcr.io/linuxserver/wireguard
     container_name: wireguard
@@ -196,16 +211,17 @@ services:
       - PUID
       - PGID
       - TZ
-      - PEERS:?err
+      - PEERS
     volumes:
       - ~/config-docker/wireguard:/config
       - /lib/modules:/lib/modules
     ports:
-      - ${WG_PORT:?err}
+      - ${WG_PORT:-51820:51820/udp}
     sysctls:
       - net.ipv4.conf.all.src_valid_mark=1
     restart: unless-stopped
 
+  # write code online in VScode style IDE
   codeserver:
     image: ghcr.io/linuxserver/code-server
     container_name: codeserver
@@ -213,11 +229,12 @@ services:
       - PUID
       - PGID
       - TZ
-      - SUDO_PASSWORD:?err
+      - SUDO_PASSWORD
     volumes:
       - ~/config-docker/code-server:/config
     restart: unless-stopped
 
+  # container management, I usually stick to editing docker-compose.yml
   portainer:
     image: portainer/portainer-ce
     container_name: portainer
@@ -225,6 +242,7 @@ services:
       - ~/config-docker/portainer:/data
       - /var/run/docker.sock:/var/run/docker.sock
 
+  # check hard drive healths and temps on daily basis
   scrutiny:
     image: ghcr.io/linuxserver/scrutiny
     container_name: scrutiny
@@ -240,10 +258,11 @@ services:
       - ~/config-docker/scrutiny:/config
       - /run/udev:/run/udev:ro
     devices:
-      - ${DEVICE1:?err}
-      - ${DEVICE2:?err}
+      - /dev/sda:/dev/sda
+      - /dev/sdc:/dev/sdc
     restart: unless-stopped
 
+  # grocery and home economy management
   grocy:
     image: ghcr.io/linuxserver/grocy
     container_name: grocy
@@ -253,6 +272,110 @@ services:
       - TZ
     volumes:
       - ~/config-docker/grocy:/config
+    restart: unless-stopped
+
+
+  # host and share pictures
+  # adapted from compose file provided by photoprism
+  photoprism:
+    depends_on:
+      - mariadb
+    image: photoprism/photoprism
+    container_name: photoprism
+    security_opt:
+      - seccomp:unconfined
+      - apparmor:unconfined
+    environment:
+      - PHOTOPRISM_ADMIN_PASSWORD          # PLEASE CHANGE: Your initial admin password (min 4 characters)
+      - PHOTOPRISM_ORIGINALS_LIMIT=1000               # File size limit for originals in MB (increase for high-res video)
+      - PHOTOPRISM_HTTP_COMPRESSION=gzip            # Improves transfer speed and bandwidth utilization (none or gzip)
+      - PHOTOPRISM_DEBUG=true                      # Run in debug mode (shows additional log messages)
+      - PHOTOPRISM_PUBLIC=false                     # No authentication required (disables password protection)
+      - PHOTOPRISM_READONLY=false                   # Don't modify originals directory (reduced functionality)
+      - PHOTOPRISM_EXPERIMENTAL=true               # Enables experimental features
+      - PHOTOPRISM_DISABLE_WEBDAV=true             # Disables built-in WebDAV server
+      - PHOTOPRISM_DISABLE_SETTINGS=true           # Disables Settings in Web UI
+      - PHOTOPRISM_DISABLE_TENSORFLOW=false         # Disables using TensorFlow for image classification
+      - PHOTOPRISM_DARKTABLE_PRESETS=false          # Enables Darktable presets and disables concurrent RAW conversion
+      - PHOTOPRISM_DETECT_NSFW=false                # Flag photos as private that MAY be offensive (requires TensorFlow)
+      - PHOTOPRISM_UPLOAD_NSFW=false                 # Allow uploads that MAY be offensive
+      - PHOTOPRISM_DATABASE_DRIVER            # Use MariaDB (or MySQL) instead of SQLite for improved performance
+      - PHOTOPRISM_DATABASE_SERVER     # MariaDB database server (hostname:port)
+      - PHOTOPRISM_DATABASE_NAME         # MariaDB database schema name
+      - PHOTOPRISM_DATABASE_USER         # MariaDB database user name
+      - PHOTOPRISM_DATABASE_PASSWORD       # MariaDB database user password
+        #- PHOTOPRISM_SITE_URL  # Public PhotoPrism URL
+      - PHOTOPRISM_SITE_TITLE=PhotoPrism
+      - PHOTOPRISM_SITE_CAPTION=Browse Your Life
+      - PHOTOPRISM_SITE_DESCRIPTION=Welcome to my photo library
+      - PHOTOPRISM_SITE_AUTHOR=Mehmet Hatip
+      # You may optionally set a user / group id using environment variables if your Docker version or NAS does not
+      # support this natively (see next example):
+      - PHOTOPRISM_UID
+      - PHOTOPRISM_GID
+        #- PHOTOPRISM_FFMPEG_ENCODER=h264_qsv        # Use Intel Quick Sync Video for AVC transcoding (default: libx264)
+        # - PHOTOPRISM_INIT=intel-graphics # Enable TensorFlow AVX2 & Intel Graphics support
+      # UMASK: 0000
+    # Uncomment and edit the following line to set a specific user / group id (native):
+    volumes:
+      # Your photo and video files ([local path]:[container path]):
+      - /mnt/main/photos:/photoprism/originals
+      # Multiple folders can be indexed by mounting them as sub-folders of /photoprism/originals:
+      # - "/mnt/Family:/photoprism/originals/Family"    # [folder_1]:/photoprism/originals/[folder_1]
+      # - "/mnt/Friends:/photoprism/originals/Friends"  # [folder_2]:/photoprism/originals/[folder_2]
+      # Mounting an import folder is optional (see docs):
+      - /mnt/main/import:/photoprism/import
+      # Permanent storage for settings, index & sidecar files (DON'T REMOVE):
+      - ~/config-docker/photoprism/storage:/photoprism/storage
+        # devices:
+        #   - /dev/dri:/dev/dri
+    restart: unless-stopped
+
+  # speedtest to the server
+  librespeed:
+    image: ghcr.io/linuxserver/librespeed
+    container_name: librespeed
+    environment:
+      - PUID
+      - PGID
+      - TZ
+      - PASSWORD
+      - CUSTOM_RESULTS=false #optional
+      - DB_TYPE #optional
+      - DB_NAME=${DB_NAME_LIBRE:-librespeed_db} #optional
+      - DB_HOSTNAME #optional
+      - DB_USERNAME #optional
+      - DB_PASSWORD #optional
+      - DB_PORT #optional
+    volumes:
+      - ~/config-docker/librespeed:/config
+    restart: unless-stopped
+
+  # self hosted discord alternative 
+  mumble:
+    image: phlak/mumble
+    container_name: mumble
+    environment:
+      - TZ
+    volumes:
+      - ~/config-docker/mumble:/etc/mumble
+    ports:
+      - 64738:64738
+      - 64738:64738/udp
+    restart: unless-stopped
+
+  # terraria server, world env variable controls while .wld file to pick
+  terraria:
+    image: beardedio/terraria
+    container_name: terraria
+    volumes:
+      - ~/config-docker/terraria:/config
+    environment:
+      - world
+    ports:
+      - 7777:7777
+    tty: true
+    stdin_open: true
     restart: unless-stopped
 
   # may try to use later
@@ -266,118 +389,14 @@ services:
   #  group_add:
   #    - 989
   #  volumes:
-  #    - ~/config-docker/jellyfin/config:/config
-  #    - ~/config-docker/jellyfin/tvshows:/data/tvshows
-  #    - ~/config-docker/jellyfin/movies:/data/movies
+  #    - ~/mnt/main/jellyfin/config:/config
+  #    - ~/mnt/main/jellyfin/tvshows:/data/tvshows
+  #    - ~/mnt/main/jellyfin/movies:/data/movies
   #  devices:
   #    - /dev/dri:/dev/dri
   #  restart: unless-stopped
   #  networks:
   #    - public
-
-
-  # adapted from compose file provided by photoprism
-  photoprism:
-    depends_on:
-      - mariadb
-    image: photoprism/photoprism
-    container_name: photoprism
-    security_opt:
-      - seccomp:unconfined
-      - apparmor:unconfined
-    environment:
-      - PHOTOPRISM_ADMIN_PASSWORD          # PLEASE CHANGE: Your initial admin password (min 4 characters)
-      - PHOTOPRISM_ORIGINALS_LIMIT=1000               # File size limit for originals in MB (increase for high-res video)
-      - PHOTOPRISM_HTTP_COMPRESSION="gzip"            # Improves transfer speed and bandwidth utilization (none or gzip)
-      - PHOTOPRISM_DEBUG="false"                      # Run in debug mode (shows additional log messages)
-      - PHOTOPRISM_PUBLIC="false"                     # No authentication required (disables password protection)
-      - PHOTOPRISM_READONLY="false"                   # Don't modify originals directory (reduced functionality)
-      - PHOTOPRISM_EXPERIMENTAL="false"               # Enables experimental features
-      - PHOTOPRISM_DISABLE_WEBDAV="false"             # Disables built-in WebDAV server
-      - PHOTOPRISM_DISABLE_SETTINGS="false"           # Disables Settings in Web UI
-      - PHOTOPRISM_DISABLE_TENSORFLOW="false"         # Disables using TensorFlow for image classification
-      - PHOTOPRISM_DARKTABLE_PRESETS="false"          # Enables Darktable presets and disables concurrent RAW conversion
-      - PHOTOPRISM_DETECT_NSFW="false"                # Flag photos as private that MAY be offensive (requires TensorFlow)
-      - PHOTOPRISM_UPLOAD_NSFW="false"                 # Allow uploads that MAY be offensive
-      - PHOTOPRISM_DATABASE_DRIVER            # Use MariaDB (or MySQL) instead of SQLite for improved performance
-      - PHOTOPRISM_DATABASE_SERVER     # MariaDB database server (hostname:port)
-      - PHOTOPRISM_DATABASE_NAME         # MariaDB database schema name
-      - PHOTOPRISM_DATABASE_USER         # MariaDB database user name
-      - PHOTOPRISM_DATABASE_PASSWORD       # MariaDB database user password
-      - PHOTOPRISM_SITE_URL  # Public PhotoPrism URL
-      - PHOTOPRISM_SITE_TITLE="PhotoPrism"
-      - PHOTOPRISM_SITE_CAPTION="Browse Your Life"
-      - PHOTOPRISM_SITE_DESCRIPTION=""
-      - PHOTOPRISM_SITE_AUTHOR="Mehmet Hatip"
-      # You may optionally set a user / group id using environment variables if your Docker version or NAS does not
-      # support this natively (see next example):
-      - UID
-      - GID
-      # UMASK: 0000
-    # Uncomment and edit the following line to set a specific user / group id (native):
-    user: ${USER:?err}
-    volumes:
-      # Your photo and video files ([local path]:[container path]):
-      - "~/config-docker/photoprism/photos:/photoprism/originals"
-      # Multiple folders can be indexed by mounting them as sub-folders of /photoprism/originals:
-      # - "/mnt/Family:/photoprism/originals/Family"    # [folder_1]:/photoprism/originals/[folder_1]
-      # - "/mnt/Friends:/photoprism/originals/Friends"  # [folder_2]:/photoprism/originals/[folder_2]
-      # Mounting an import folder is optional (see docs):
-      - "~/config-docker/photoprism/import:/photoprism/import"
-      # Permanent storage for settings, index & sidecar files (DON'T REMOVE):
-      - "~/config-docker/photoprism/storage:/photoprism/storage"
-    restart: unless-stopped
-
-  librespeed:
-    image: ghcr.io/linuxserver/librespeed
-    container_name: librespeed
-    environment:
-      - PUID
-      - PGID
-      - TZ
-      - PASSWORD
-      - CUSTOM_RESULTS=false #optional
-      - DB_TYPE #optional
-      - DB_NAME=${DB_NAME_LIBRE} #optional
-      - DB_HOSTNAME #optional
-      - DB_USERNAME #optional
-      - DB_PASSWORD #optional
-      - DB_PORT #optional
-    volumes:
-      - ~/config-docker/librespeed:/config
-    networks:
-      - public
-    restart: unless-stopped
-
-  mumble:
-    image: phlak/mumble
-    container_name: mumble
-    environment:
-      - TZ
-    user: ${USER:?err}
-    volumes:
-      - ~/config-docker/mumble:/etc/mumble
-    ports:
-      - 64738:64738
-      - 64738:64738/udp
-    networks:
-      - public
-    restart: unless-stopped
-
-  terraria:
-    image: beardedio/terraria
-    container_name: terraria
-    volumes:
-      - ~/config-docker/terraria:/config
-    environment:
-      - world
-    ports:
-      - 7777:7777
-    tty: true
-    stdin_open: true
-    networks:
-      - public
-    restart: unless-stopped
 
   # notes for future microservices
   #emby embystat - media server

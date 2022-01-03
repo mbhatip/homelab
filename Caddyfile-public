@@ -18,15 +18,29 @@
 	header ?X-XSS-Protection "1; mode=block"
 }
 
+srv.{$DOMAIN:localhost} {
+	import privacy
+	# authenticate before accessing files
+	basicauth {
+		misafir {$FILES_PASSWORD}
+	}
+	file_server browse
+}
+
 {$DOMAIN:localhost} {
 	import privacy
-	header Content-Security-Policy "default-src 'none'"
+	#header Content-Security-Policy "default-src 'none'"
 	reverse_proxy homer:8080
+}
+
+photos.{$DOMAIN:localhost} {
+	import privacy
+	reverse_proxy photoprism:2342
 }
 
 librespeed.{$DOMAIN:localhost} {
 	import privacy
-	header Content-Security-Policy "default-src 'none'; img-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'unsafe-inline'"
+	header Content-Security-Policy "default-src https: 'unsafe-eval' 'unsafe-inline'; img-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'unsafe-inline'"
 	reverse_proxy librespeed:80
 }
 

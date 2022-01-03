@@ -1,0 +1,40 @@
+{
+	# use local certs since domain is private and accessed over VPN only
+	local_certs
+}
+
+router.{$PRIVATE_DOMAIN:localhost} {
+    redir http://{$ROUTER_IP}
+}
+
+olivetin.{$PRIVATE_DOMAIN:localhost} {
+    reverse_proxy speaker:1337
+}
+
+jellyfin.{$PRIVATE_DOMAIN:localhost} {
+    reverse_proxy jellyfin:8096
+}
+
+guacamole.{$PRIVATE_DOMAIN:localhost} {
+    reverse_proxy guacamole:8080
+}
+
+scrutiny.{$PRIVATE_DOMAIN:localhost} {
+    reverse_proxy scrutiny:8080
+}
+
+codeserver.{$PRIVATE_DOMAIN:localhost} {
+    reverse_proxy codeserver:8443
+}
+
+transmission.{$PRIVATE_DOMAIN:localhost} {
+    reverse_proxy transmission:9091
+}
+
+portainer.{$PRIVATE_DOMAIN:localhost} {
+    reverse_proxy portainer:9000
+}
+
+glances.{$PRIVATE_DOMAIN:localhost} {
+    reverse_proxy speaker:61208
+}
