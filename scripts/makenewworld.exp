@@ -96,7 +96,7 @@ password $password
 "
 
 set timeout -1
-spawn docker run --rm -it --name=maketerrariaworld -v /home/memohat/config-docker/terraria:/config beardedio/terraria
+spawn docker run --rm -it --name=maketerrariaworld -v $HOME/config-docker/terraria:/config beardedio/terraria
 match_max 100000
 expect -exact "\[?1h=\[6n"
 send -- "\[35;1R"
