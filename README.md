@@ -2,9 +2,6 @@
 
 TODO:
 - make homelab repo with config files and explanations on tech
-- add comments & changelogs to files
 - finish PR on argo rollouts 
-
-- configure olivetin for easy to run commands 
-- update homer real time with env variables
-- set up static file server with Caddy
+- configure olivetin for backup and restart conatiners 
+- update homer with env variables
