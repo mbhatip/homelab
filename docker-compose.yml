@@ -24,11 +24,6 @@ services:
       - ~/config-docker/caddy-public/data:/data
       - ~/config-docker/caddy-public/config:/config
       - ~/config-docker/caddy-public/srv:/srv
-    networks:
-      default:
-      # define static IP address so host dnsmasq can redirect domain to container
-      # no need for aliases after VPN connection is established and DNS server is set
-        ipv4_address: ${CADDY_PUBLIC_IP:-172.20.1.1}
     restart: unless-stopped
 
   # private caddy that redirects from private domain through VPN
@@ -36,6 +31,7 @@ services:
     image: caddy
     container_name: caddy
     environment:
+      - DOMAIN
       - PRIVATE_DOMAIN
       - ROUTER_IP
     volumes:
@@ -46,10 +42,10 @@ services:
       default:
       # define static IP address so host dnsmasq can redirect lan.domain to container
       # no need for aliases after VPN connection is established and DNS server is set
-        ipv4_address: ${CADDY_IP:-172.20.2.1}
+        ipv4_address: ${CADDY_IP}
     restart: unless-stopped
 
-  # minecraft server, need to figure out how to change world through variable
+  # minecraft server, level env var controls which world to build and host
   minecraft:
     image: itzg/minecraft-server:java17
     container_name: minecraft
@@ -58,9 +54,12 @@ services:
       - UID
       - GID
       - TZ
-      - ENABLE_AUTOPAUSE=TRUE
-      - MAX_TICK_TIME=-1
-      - MEMORY=2G
+      - ENABLE_AUTOPAUSE
+      - MAX_TICK_TIME
+      - MEMORY
+      - OVERRIDE_SERVER_PROPERTIES
+      - MOTD
+      - LEVEL
     volumes:
       - ~/config-docker/minecraft:/data
     ports:
@@ -159,8 +158,8 @@ services:
         #- HOST_WHITELIST=dnsnane list #optional
     volumes:
       - ~/config-docker/transmission:/config
-      - /mnt/main/tmp/torrents/downloads:/downloads
-      - /mnt/main/tmp/torrents/watch:/watch
+      - /mnt/main/media/downloads:/downloads
+      - /mnt/main/media/watch:/watch
     ports:
       # Allows for seeding
       - 51413:51413
@@ -235,12 +234,13 @@ services:
     restart: unless-stopped
 
   # container management, I usually stick to editing docker-compose.yml
-  portainer:
-    image: portainer/portainer-ce
-    container_name: portainer
-    volumes:
-      - ~/config-docker/portainer:/data
-      - /var/run/docker.sock:/var/run/docker.sock
+  #portainer:
+  #  image: portainer/portainer-ce
+  #  container_name: portainer
+  #  volumes:
+  #    - ~/config-docker/portainer:/data
+  #    - /var/run/docker.sock:/var/run/docker.sock
+  #  restart: unless-stopped
 
   # check hard drive healths and temps on daily basis
   scrutiny:
@@ -352,17 +352,17 @@ services:
     restart: unless-stopped
 
   # self hosted discord alternative 
-  mumble:
-    image: phlak/mumble
-    container_name: mumble
-    environment:
-      - TZ
-    volumes:
-      - ~/config-docker/mumble:/etc/mumble
-    ports:
-      - 64738:64738
-      - 64738:64738/udp
-    restart: unless-stopped
+  #mumble:
+  #  image: phlak/mumble
+  #  container_name: mumble
+  #  environment:
+  #    - TZ
+  #  volumes:
+  #    - ~/config-docker/mumble:/etc/mumble
+  #  ports:
+  #    - 64738:64738
+  #    - 64738:64738/udp
+  #  restart: unless-stopped
 
   # terraria server, world env variable controls while .wld file to pick
   terraria:
@@ -378,25 +378,40 @@ services:
     stdin_open: true
     restart: unless-stopped
 
-  # may try to use later
-  #jellyfin:
-  #  image: ghcr.io/linuxserver/jellyfin
-  #  container_name: jellyfin
-  #  environment:
-  #    - PUID=1001
-  #    - PGID=1001
-  #    - TZ=America/New_York
-  #  group_add:
-  #    - 989
-  #  volumes:
-  #    - ~/mnt/main/jellyfin/config:/config
-  #    - ~/mnt/main/jellyfin/tvshows:/data/tvshows
-  #    - ~/mnt/main/jellyfin/movies:/data/movies
-  #  devices:
-  #    - /dev/dri:/dev/dri
-  #  restart: unless-stopped
-  #  networks:
-  #    - public
+  jellyfin:
+    image: ghcr.io/linuxserver/jellyfin
+    container_name: jellyfin
+    environment:
+      - PUID
+      - PGID
+      - TZ
+    group_add:
+      - "989"
+    volumes:
+      - ~/config-docker/jellyfin/config:/config
+      - /mnt/main/media/downloads/complete:/data/media
+    devices:
+      - /dev/dri:/dev/dri
+    restart: unless-stopped
+
+  synapse:
+    image: docker.io/matrixdotorg/synapse
+    container_name: synapse
+    environment:
+      - SYNAPSE_SERVER_NAME={$DOMAIN}
+      - SYNAPSE_REPORT_STATS=yes
+      - UID
+      - GID
+      - TZ
+    volumes:
+      - ~/config-docker/synapse:/data
+    restart: unless-stopped
+  synapseadmin:
+    container_name: synapseadmin
+    image: awesometechnologies/synapse-admin:latest
+    build:
+      context: https://github.com/Awesome-Technologies/synapse-admin.git
+    restart: unless-stopped
 
   # notes for future microservices
   #emby embystat - media server

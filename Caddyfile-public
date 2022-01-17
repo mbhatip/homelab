@@ -18,6 +18,30 @@
 	header ?X-XSS-Protection "1; mode=block"
 }
 
+(matrix-well-known-header) {
+	# Headers
+	header Access-Control-Allow-Origin "*"
+	header Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
+	header Access-Control-Allow-Headers "Origin, X-Requested-With, Content-Type, Accept, Authorization"
+	header Content-Type "application/json"
+}
+
+{$DOMAIN:localhost} {
+	handle /.well-known/matrix/server {
+		import matrix-well-known-header
+		respond `{"m.server":"matrix.{$DOMAIN:localhost}:443"}`
+	}
+
+	import privacy
+	#header Content-Security-Policy "default-src 'none'"
+	reverse_proxy homer:8080
+}
+
+matrix.{$DOMAIN:localhost} {
+	reverse_proxy /_matrix/* synapse:8008
+	reverse_proxy /_synapse/client/* synapse:8008
+}
+
 srv.{$DOMAIN:localhost} {
 	import privacy
 	# authenticate before accessing files
@@ -27,18 +51,12 @@ srv.{$DOMAIN:localhost} {
 	file_server browse
 }
 
-{$DOMAIN:localhost} {
-	import privacy
-	#header Content-Security-Policy "default-src 'none'"
-	reverse_proxy homer:8080
-}
-
 photos.{$DOMAIN:localhost} {
 	import privacy
 	reverse_proxy photoprism:2342
 }
 
-librespeed.{$DOMAIN:localhost} {
+speed.{$DOMAIN:localhost} {
 	import privacy
 	header Content-Security-Policy "default-src https: 'unsafe-eval' 'unsafe-inline'; img-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'unsafe-inline'"
 	reverse_proxy librespeed:80
@@ -47,4 +65,9 @@ librespeed.{$DOMAIN:localhost} {
 hedgedoc.{$DOMAIN:localhost} {
 	import privacy
 	reverse_proxy hedgedoc:3000
+}
+
+jellyfin.{$DOMAIN:localhost} {
+	import privacy
+	reverse_proxy jellyfin:8096
 }

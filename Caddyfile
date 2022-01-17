@@ -11,10 +11,6 @@ olivetin.{$PRIVATE_DOMAIN:localhost} {
     reverse_proxy speaker:1337
 }
 
-jellyfin.{$PRIVATE_DOMAIN:localhost} {
-    reverse_proxy jellyfin:8096
-}
-
 guacamole.{$PRIVATE_DOMAIN:localhost} {
     reverse_proxy guacamole:8080
 }
@@ -37,4 +33,17 @@ portainer.{$PRIVATE_DOMAIN:localhost} {
 
 glances.{$PRIVATE_DOMAIN:localhost} {
     reverse_proxy speaker:61208
+}
+
+grocy.{$PRIVATE_DOMAIN:localhost} {
+    reverse_proxy grocy:80
+}
+
+synapseadmin.{$PRIVATE_DOMAIN:localhost} {
+    reverse_proxy synapseadmin:80
+}
+
+# included here to allow for synapse admin to connect 
+matrix.{$PRIVATE_DOMAIN:localhost} {
+    reverse_proxy synapse:8008
 }
