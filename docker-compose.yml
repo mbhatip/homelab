@@ -31,7 +31,6 @@ services:
     image: caddy
     container_name: caddy
     environment:
-      - DOMAIN
       - PRIVATE_DOMAIN
       - ROUTER_IP
     volumes:
@@ -40,7 +39,7 @@ services:
       - ~/config-docker/caddy/config:/config
     networks:
       default:
-      # define static IP address so host dnsmasq can redirect lan.domain to container
+      # define static IP address so host dnsmasq can redirect private domain to containers
       # no need for aliases after VPN connection is established and DNS server is set
         ipv4_address: ${CADDY_IP}
     restart: unless-stopped
