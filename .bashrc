@@ -101,10 +101,9 @@ source $OSH/oh-my-bash.sh
 # alias bashconfig="mate ~/.bashrc"
 # alias ohmybash="mate ~/.oh-my-bash"
 
-# add oc to path for crc
-export PATH="$HOME/.crc/bin/oc:$PATH"
+# add oc and go bin to path
+export PATH="$PATH:$HOME/.crc/bin/oc:$HOME/go/bin"
 # add export for screen to work
 export SCREENDIR="$HOME/.screen"
-
 # alias to see ports server is listening on
 alias listenports="sudo ss -tulpn | grep LISTEN"
