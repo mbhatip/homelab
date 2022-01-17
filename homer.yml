@@ -42,12 +42,10 @@ colors:
     link-hover: "#ffdd57"
 
 # Optional message
-# message:
-#   #url: https://b4bz.io
-#   style: "is-dark" # See https://bulma.io/documentation/components/message/#colors for styling options.
-#   title: "Demo !"
-#   icon: "fa fa-grin"
-#   content: "This is a dummy homepage demo. <br /> Find more information on <a href='https://github.com/bastienwirtz/homer'>github.com/bastienwirtz/homer</a>"
+message:
+   style: "is-dark" # See https://bulma.io/documentation/components/message/#colors for styling options.
+   title: "Welcome to my self-hosted website!"
+   content: 'To learn more about the tech behind this project, click <a href="https://github.com/mbhatip/homelab" target="_blank">this link</a> to check out the GitHub repo.'
 
 # Optional navbar
 # links: [] # Allows for navbar (dark mode, layout, and search) without any links
@@ -60,6 +58,10 @@ links:
     icon: "fab fa-twitter"
     url: "https://twitter.com/mbhatip"
     target: "_blank" # optional html a tag target attribute
+  - name: "LinkedIn"
+    icon: "fab fa-linkedin"
+    url: "https://linkedin.com/in/mbhatip"
+    target: "_blank" # optional html a tag target attribute
   # this will link to a second homer page that will load config from additionnal-page.yml and keep default config values as in config.yml file
   # see url field and assets/additionnal-page.yml.dist used in this example:
   # - name: "another page!"
@@ -70,18 +72,79 @@ links:
 # First level array represent a group.
 # Leave only a "items" key if not using group (group name, icon & tagstyle are optional, section separation will not be displayed).
 services:
-  - name: "Public"
-    icon: "fab fa-empire"
+  - name: "Web Services"
+    icon: "fa fa-globe"
     items:
       - name: "Speedtest"
         logo: "assets/tools/librespeed.png"
         subtitle: "HTML5 Librespeed test"
-        tag: "app"
-        url: "http://librespeed.memohat.xyz"
+        tag: "Try me!"
+        url: "http://speed.memohat.xyz"
         target: "_blank" # optional html a tag target attribute
       - name: "Hedgedoc"
         logo: "assets/tools/hedgedoc.png"
         subtitle: "Collaborate with others in real time"
-        tag: "app"
+        tag: "Try me!"
         url: "http://hedgedoc.memohat.xyz/features"
+        target: "_blank" # optional html a tag target attribute
+  - name: "Game Servers"
+    icon: "fa fa-gamepad"
+    items:
+      - name: "Minecraft"
+        logo: "assets/tools/minecraft.png"
+        subtitle: "Contact me to get address"
+          #url: "https://mcsrvstat.us/server/memohat.xyz"
+          #target: "_blank"
+          #tag: "Click to get server status"
+      - name: "Terraria"
+        logo: "assets/tools/terraria.jpg"
+        subtitle: "Contact me to get address"
+          #subtitle: "Join on memohat.xyz!"
+  - name: "Admin (VPN Access)"
+    icon: "fa fa-lock"
+    items:
+      - name: "Transmission"
+        logo: "assets/tools/transmission.png"
+        subtitle: "Torrent client"
+        url: "https://transmission.lan.memohat.xyz"
+        target: "_blank" # optional html a tag target attribute
+      - name: "Guacamole"
+        logo: "assets/tools/guacamole.png"
+        subtitle: "Remote SSH, RDP, VNC on browser"
+        url: "https://guacamole.lan.memohat.xyz"
+        target: "_blank" # optional html a tag target attribute
+      - name: "Codeserver"
+        logo: "assets/tools/codeserver.svg"
+        subtitle: "Write code online"
+        url: "https://codeserver.lan.memohat.xyz"
+        target: "_blank" # optional html a tag target attribute
+      - name: "Portainer"
+        logo: "assets/tools/portainer.png"
+        subtitle: "Container Management"
+        url: "https://portainer.lan.memohat.xyz"
+        target: "_blank" # optional html a tag target attribute
+      - name: "Scrutiny"
+        logo: "assets/tools/scrutiny.png"
+        subtitle: "Check HDD and SSD health"
+        url: "https://scrutiny.lan.memohat.xyz"
+        target: "_blank" # optional html a tag target attribute
+      - name: "OliveTin"
+        logo: "assets/tools/olivetin.png"
+        subtitle: "Automate commands with button presses"
+        url: "https://olivetin.lan.memohat.xyz"
+        target: "_blank" # optional html a tag target attribute
+      - name: "Glances"
+        logo: "assets/tools/glances.png"
+        subtitle: "System monitoring"
+        url: "https://glances.lan.memohat.xyz"
+        target: "_blank" # optional html a tag target attribute
+      - name: "Synapse Admin"
+        logo: "assets/tools/sample.png"
+        subtitle: "Manage Synapse server"
+        url: "https://synapseadmin.lan.memohat.xyz"
+        target: "_blank" # optional html a tag target attribute
+      - name: "Grocy"
+        logo: "assets/tools/grocy.svg"
+        subtitle: "Grocery and Home economy management"
+        url: "https://grocy.lan.memohat.xyz"
         target: "_blank" # optional html a tag target attribute
