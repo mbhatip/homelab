@@ -15,6 +15,7 @@ services:
     container_name: caddy-public
     environment:
       - DOMAIN
+      - FILES_USERNAME
       - FILES_PASSWORD
     ports:
        - 80:80

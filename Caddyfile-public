@@ -46,7 +46,7 @@ srv.{$DOMAIN:localhost} {
 	import privacy
 	# authenticate before accessing files
 	basicauth {
-		misafir {$FILES_PASSWORD}
+		{$FILES_USERNAME} {$FILES_PASSWORD}
 	}
 	file_server browse
 }

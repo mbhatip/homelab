@@ -79,13 +79,28 @@ services:
         logo: "assets/tools/librespeed.png"
         subtitle: "HTML5 Librespeed test"
         tag: "Try me!"
-        url: "http://speed.memohat.xyz"
+        url: "https://speed.memohat.xyz"
         target: "_blank" # optional html a tag target attribute
       - name: "Hedgedoc"
         logo: "assets/tools/hedgedoc.png"
         subtitle: "Collaborate with others in real time"
         tag: "Try me!"
-        url: "http://hedgedoc.memohat.xyz/features"
+        url: "https://hedgedoc.memohat.xyz/features"
+        target: "_blank" # optional html a tag target attribute
+      - name: "Caddy Static Fileserver"
+        logo: "assets/tools/caddy.png"
+        subtitle: "Password Protected Static Fileserver"
+        url: "https://srv.memohat.xyz"
+        target: "_blank" # optional html a tag target attribute
+      - name: "Photoprism Photo Gallery and Storage"
+        logo: "assets/tools/photoprism.svg"
+        subtitle: "View pictures and videos"
+        url: "https://photos.memohat.xyz"
+        target: "_blank" # optional html a tag target attribute
+      - name: "Jellyfin Media Server"
+        logo: "assets/tools/jellyfin.png"
+        subtitle: "Watch Movies and Shows together"
+        url: "https://jellyfin.memohat.xyz"
         target: "_blank" # optional html a tag target attribute
   - name: "Game Servers"
     icon: "fa fa-gamepad"
@@ -111,7 +126,7 @@ services:
       - name: "Guacamole"
         logo: "assets/tools/guacamole.png"
         subtitle: "Remote SSH, RDP, VNC on browser"
-        url: "https://guacamole.lan.memohat.xyz"
+        url: "https://guacamole.lan.memohat.xyz/guacamole"
         target: "_blank" # optional html a tag target attribute
       - name: "Codeserver"
         logo: "assets/tools/codeserver.svg"
@@ -142,6 +157,11 @@ services:
         logo: "assets/tools/sample.png"
         subtitle: "Manage Synapse server"
         url: "https://synapseadmin.lan.memohat.xyz"
+        target: "_blank" # optional html a tag target attribute
+      - name: "Router"
+        logo: "assets/tools/sample2.png"
+        subtitle: "Router config"
+        url: "https://router.lan.memohat.xyz"
         target: "_blank" # optional html a tag target attribute
       - name: "Grocy"
         logo: "assets/tools/grocy.svg"
